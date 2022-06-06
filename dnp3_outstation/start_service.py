@@ -219,7 +219,7 @@ class Processor(object):
 
 def start_outstation(outstation_config, processor):
     print("*********************************")
-    print(str(outstation_config))
+    print("===============str(outstation_config)", str(outstation_config))
     dnp3_outstation = DNP3Outstation('0.0.0.0', 20000, outstation_config)
     dnp3_outstation.set_agent(processor)
     dnp3_outstation.start()
@@ -261,6 +261,45 @@ def publish_outstation_status(status_string):
     print(status_string)
 
 
+class Opendnp3Analog(opendnp3.Analog):
+    """
+    Make opendnp3.Analog explicitly describe fields,
+    then replace opendnp.Analog with Opendnp3Analog.
+    TODO: this is not the right place to place this class.
+    """
+
+    def __init__(self, *args, **kwargs):  # warning (ignore): Shadows name 'args' from outer scope
+        """
+
+        :param args:
+        :param kwargs:
+        """
+        # setattr so that *args and **kwargs are part of the fields and can display by overriding __str__
+        for i, v in enumerate(args):
+            setattr(self, f"value_{i}", v)
+        for k, v in kwargs.items():
+            if k in self.__dict__:
+                setattr(self, k, v)
+            else:
+                raise KeyError(k)
+
+        super().__init__(*args, **kwargs)
+
+    def __str__(self):
+        """
+        Display Opendnp3Analog fields
+        Example:
+            Opendnp3Analog(value_0=5.1)
+        :return:
+        """
+
+
+        return '%s(%s)' % (
+            type(self).__name__,
+            ', '.join('%s=%s' % item for item in vars(self).items()),
+        )
+
+
 if __name__ == '__main__':
     """
     Example:
@@ -289,11 +328,19 @@ if __name__ == '__main__':
     print("=================point_def====================",
           point_def)  # TODO: understand what exactly processor does here.
     processor = Processor(point_def)
-    print("************************")
+    # print("************************")
     print("=================processor====================", processor)  # TODO: understand what exactly processor does here.
     # point_def.load_points(points)
 
-    outstation = start_outstation(oustation, processor)
+    # outstation = start_outstation(oustation, processor)
+    # start_outstation: explicit describe the process for readability
+    dnp3_outstation = DNP3Outstation('0.0.0.0', 20000, oustation)
+    dnp3_outstation.set_agent(processor)
+    dnp3_outstation.start()
+    _log.debug('DNP3 initialization complete. In command loop.')
+    outstation = dnp3_outstation
+    print("=================outstation====================",
+          outstation)  # TODO: understand what exactly processor does here.
 
     import random
 
@@ -301,7 +348,12 @@ if __name__ == '__main__':
     while True:
         _log.debug("Updating to new values of index 0, 1, 2, and binary 3")
         # outstation.apply_update(opendnp3.Analog(random.random() * 100), 0)  # TODO: use a fixed number for debugging
-        outstation.apply_update(opendnp3.Analog(random.choice([5.1, 6.1])), 0)  # TODO: use a fixed number for debugging, seems like need to use float (maybe not), use randome.choice to "force" it update and push to master station
+        # outstation.apply_update(opendnp3.Analog(random.choice([5.1, 6.1])), 0)  # TODO: use a fixed number for debugging,
+        # # seems like need to use float (maybe not), use randome.choice to "force" it update and push to master station
+        outstation.apply_update(Opendnp3Analog(random.choice([5.1, 6.1])),
+                                0)  # TODO: use a fixed number for debugging,
+        # seems like need to use float (maybe not), use randome.choice to "force" it update and push to master station
+
         outstation.apply_update(opendnp3.Analog(random.random() * 100), 1)
         outstation.apply_update(opendnp3.Analog(random.random() * 1000), 2)
         outstation.apply_update(opendnp3.Binary(flip), 0)

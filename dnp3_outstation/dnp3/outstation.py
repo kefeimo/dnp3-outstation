@@ -94,7 +94,8 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         self.local_ip = local_ip
         self.port = port
         # print(local_ip),
-        self.set_outstation_config(outstation_config)
+        # self.set_outstation_config(outstation_config)
+        self.outstation_config = self.set_outstation_config(outstation_config)  # use functional programming paradigm
         # The following variables are initialized after start() is called.
         self.stack_config = None
         self.log_handler = None
@@ -103,12 +104,49 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         self.listener = None
         self.channel = None
         self.command_handler = None
+        # including
+        self.agent = None
+        self.outstation = None
+
         # self.port_config = port_file
 
         # with open("/tmp/port.json", 'r') as f:
         #    self.port_config = json.load(f)
         #    for m in self.port_config:
         #        self.port = m['port']
+
+    def __str__(self):
+        """
+        Display DNP3Outstation fields
+        Example:
+            DNP3Outstation(local_ip=0.0.0.0,
+            port=20000,
+            outstation_config={},
+            stack_config=<pydnp3.asiodnp3.OutstationStackConfig object at 0x7fc50bdf8370>,
+            log_handler=<dnp3.outstation.MyLogger object at 0x7fc50b660cc0>,
+            manager=<pydnp3.asiodnp3.DNP3Manager object at 0x7fc50b6466f0>,
+            retry_parameters=<pydnp3.asiopal.ChannelRetry object at 0x7fc50b6376b0>,
+            listener=<dnp3.outstation.AppChannelListener object at 0x7fc50b4f0cc0>,
+            channel=<pydnp3.asiodnp3.IChannel object at 0x7fc50bdf2270>,
+            command_handler=<dnp3.outstation.OutstationCommandHandler object at 0x7fc50b4f0130>,
+            agent=Processor(point_definitions=PointDefinitions(
+                    _points={'Analog Input': {1: <dnp3.points.PointDefinition object at 0x7fc50b4fa190>},
+                            'Binary Input': {0: <dnp3.points.PointDefinition object at 0x7fc50b4fa160>},
+                            'Binary Output': {1: <dnp3.points.PointDefinition object at 0x7fc50b4fa0d0>},
+                            'Analog Output': {1: <dnp3.points.PointDefinition object at 0x7fc50b4fa250>}},
+                _point_variation_dict={},
+                _point_name_dict={}),
+                _current_point_values={},
+                _selector_block_points={},
+                _current_array=None),
+            outstation=<pydnp3.asiodnp3.IOutstation object at 0x7fc50b67be70>)
+
+        :return:
+        """
+        return '%s(%s)' % (
+            type(self).__name__,
+            ', '.join('%s=%s' % item for item in vars(self).items())
+        )
 
     def start(self):
         _log.debug('Configuring the DNP3 stack.')
@@ -237,7 +275,8 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
 
         :param outstn_cfg: A dictionary of configuration parameters.
         """
-        self.outstation_config = outstn_cfg
+        # self.outstation_config = outstn_cfg
+        return outstn_cfg
 
     def dnp3_log_level(self):
         """
@@ -331,7 +370,7 @@ class DNP3Outstation(opendnp3.IOutstationApplication):
         update = builder.Build()
         try:
             self.get_outstation().Apply(update)
-            print("Updating point values", self.port)
+            print("Updating point values", f"port: {self.port}, value: {value}, index: {index}")
         except AttributeError as err:
             if not os.environ.get('UNITTEST', False):
                 raise err
